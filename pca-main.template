@@ -83,6 +83,27 @@ Parameters:
     Default: PERSON | LOCATION | ORGANIZATION | COMMERCIAL_ITEM | EVENT | DATE | QUANTITY | TITLE
     Description: Entity types supported by Comprehend's standard entity detection, separated by " | "
 
+  # Dutch NLP API Configuration
+  DutchNLPApiEndpoint:
+    Type: String
+    Default: ""
+    Description: >-
+      (Optional) Endpoint URL for Dutch NLP API for sentiment analysis and entity extraction.
+      If provided, Dutch language processing will use this API instead of Amazon Comprehend.
+      Example: https://your-dutch-nlp-api.amazonaws.com
+
+  EnableDutchNLP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable Dutch NLP processing using custom Dutch NLP API instead of Comprehend
+
+  DefaultTranscribeLanguage:
+    Type: String
+    Default: "en-US"
+    AllowedValues: ["en-US", "nl-NL", "de-DE", "es-ES", "fr-FR", "it-IT", "pt-BR"]
+    Description: Default language code for Amazon Transcribe jobs
+
   InputBucketAudioPlayback:
     Type: String
     Default: playbackAudio
