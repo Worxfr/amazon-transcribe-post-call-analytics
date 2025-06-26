@@ -81,6 +81,26 @@ Parameters:
     Type: String
     Description: The DynamoDB table name where the summary and query prompt templates are stored.
 
+  # Dutch NLP Configuration Parameters
+  DutchNLPApiEndpoint:
+    Type: String
+    Default: ""
+    Description: >-
+      (Optional) Endpoint URL for Dutch NLP API for sentiment analysis and entity extraction.
+      If provided, Dutch language processing will use this API instead of Amazon Comprehend.
+
+  EnableDutchNLP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable Dutch NLP processing using custom Dutch NLP API instead of Comprehend
+
+  DefaultTranscribeLanguage:
+    Type: String
+    Default: "en-US"
+    AllowedValues: ["en-US", "nl-NL", "de-DE", "es-ES", "fr-FR", "it-IT", "pt-BR"]
+    Description: Default language code for Amazon Transcribe jobs
+
 
 Conditions:
   ShouldDeployBedrockSummarizer: !Or [
@@ -132,6 +152,9 @@ Resources:
         SummarizationLLMThirdPartyApiKey: !Ref SummarizationLLMThirdPartyApiKey
         SummarizationLambdaFunctionArn: !Ref SummarizationLambdaFunctionArn
         LLMTableName: !Ref LLMTableName
+        DutchNLPApiEndpoint: !Ref DutchNLPApiEndpoint
+        EnableDutchNLP: !Ref EnableDutchNLP
+        DefaultTranscribeLanguage: !Ref DefaultTranscribeLanguage
 
   Trigger:
     Type: AWS::CloudFormation::Stack

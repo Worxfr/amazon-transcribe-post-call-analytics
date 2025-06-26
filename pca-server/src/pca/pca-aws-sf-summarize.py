@@ -15,6 +15,17 @@ import requests
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
+# Dutch Summarization Support
+try:
+    from pca_bedrock_dutch_summarization import (
+        summarize_dutch_call_with_bedrock,
+        is_dutch_content,
+        get_dutch_summary_prompt
+    )
+    DUTCH_SUMMARIZATION_AVAILABLE = True
+except ImportError:
+    DUTCH_SUMMARIZATION_AVAILABLE = False
+
 
 AWS_REGION = os.environ["AWS_REGION_OVERRIDE"] if "AWS_REGION_OVERRIDE" in os.environ else os.environ["AWS_REGION"]
 SUMMARIZE_TYPE = os.getenv('SUMMARY_TYPE', 'DISABLED')
@@ -276,11 +287,28 @@ def lambda_handler(event, context):
             print(err)
     elif SUMMARIZE_TYPE == 'BEDROCK' or SUMMARIZE_TYPE == 'BEDROCK+TCA':
         try:
-            summary = generate_bedrock_summary(transcript_str, pca_results.analytics.transcribe_job.api_mode)
-            try: 
-                summary_json = json.loads(summary)
-            except:
-                print('no json detected in summary.')
+            # Check if content is Dutch and use Dutch summarization if available
+            if DUTCH_SUMMARIZATION_AVAILABLE and is_dutch_content(transcript_str):
+                print("Using Dutch summarization for Bedrock")
+                # Extract call metadata for Dutch summarization
+                call_metadata = {
+                    'duration': getattr(pca_results.analytics, 'duration_seconds', 0),
+                    'channel_count': len(getattr(pca_results.analytics, 'channel_labels', [])),
+                    'date': getattr(pca_results.analytics, 'conversation_time', '')
+                }
+                summary_json = summarize_dutch_call_with_bedrock(
+                    transcript_str, 
+                    BEDROCK_MODEL_ID, 
+                    call_metadata
+                )
+                summary = json.dumps(summary_json) if isinstance(summary_json, dict) else str(summary_json)
+            else:
+                # Use standard English Bedrock summarization
+                summary = generate_bedrock_summary(transcript_str, pca_results.analytics.transcribe_job.api_mode)
+                try: 
+                    summary_json = json.loads(summary)
+                except:
+                    print('no json detected in summary.')
         except Exception as err:
             summary = 'An error occurred generating Bedrock summary.'
             print(err)

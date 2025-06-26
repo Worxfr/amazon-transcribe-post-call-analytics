@@ -43,6 +43,22 @@ Parameters:
   LLMTableName:
     Type: String
 
+  # Dutch NLP Configuration Parameters
+  DutchNLPApiEndpoint:
+    Type: String
+    Default: ""
+    Description: Endpoint URL for Dutch NLP API
+    
+  EnableDutchNLP:
+    Type: String
+    Default: "false"
+    Description: Enable Dutch NLP processing
+    
+  DefaultTranscribeLanguage:
+    Type: String
+    Default: "en-US"
+    Description: Default language code for Transcribe jobs
+
 Globals:
   Function:
     Runtime: python3.13
@@ -152,6 +168,9 @@ Resources:
           RoleArn: !GetAtt TranscribeRole.Arn
           AWS_DATA_PATH: /opt/models
           STACK_NAME: !Ref ParentStackName
+          DUTCH_NLP_API_ENDPOINT: !Ref DutchNLPApiEndpoint
+          ENABLE_DUTCH_NLP: !Ref EnableDutchNLP
+          DEFAULT_TRANSCRIBE_LANGUAGE: !Ref DefaultTranscribeLanguage
       Role: !GetAtt TranscribeLambdaRole.Arn
 
   SFExtractJobHeader:
@@ -200,6 +219,9 @@ Resources:
         Variables:
           AWS_DATA_PATH: /opt/models
           STACK_NAME: !Ref ParentStackName
+          DUTCH_NLP_API_ENDPOINT: !Ref DutchNLPApiEndpoint
+          ENABLE_DUTCH_NLP: !Ref EnableDutchNLP
+          DEFAULT_TRANSCRIBE_LANGUAGE: !Ref DefaultTranscribeLanguage
       Policies:
         - arn:aws:iam::aws:policy/AmazonTranscribeReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
@@ -282,6 +304,9 @@ Resources:
           SUMMARY_LAMBDA_ARN: !Ref SummarizationLambdaFunctionArn
           ANTHROPIC_MODEL_IDENTIFIER: claude-v1.3-100k
           ANTHROPIC_ENDPOINT_URL: https://api.anthropic.com/v1/complete
+          DUTCH_NLP_API_ENDPOINT: !Ref DutchNLPApiEndpoint
+          ENABLE_DUTCH_NLP: !Ref EnableDutchNLP
+          DEFAULT_TRANSCRIBE_LANGUAGE: !Ref DefaultTranscribeLanguage
           TOKEN_COUNT: !If
             - ProvisionedSageMakerEndpoint
             - 1024

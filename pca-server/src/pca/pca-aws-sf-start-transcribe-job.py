@@ -16,6 +16,18 @@ import pcacommon
 import os
 import time
 
+# Dutch NLP Configuration
+try:
+    from pca_dutch_transcribe_config import (
+        configure_dutch_language_support,
+        configure_dutch_transcribe_settings,
+        log_language_configuration,
+        is_dutch_language_configured
+    )
+    DUTCH_CONFIG_AVAILABLE = True
+except ImportError:
+    DUTCH_CONFIG_AVAILABLE = False
+
 # Local temporary folder for file-based operations
 TMP_DIR = "/tmp/"
 
@@ -270,6 +282,10 @@ def submitTranscribeJob(bucket, key):
                 'GenerateAbstractiveSummary': True
             }
 
+        # Configure Dutch transcribe settings if available
+        if DUTCH_CONFIG_AVAILABLE:
+            job_settings = configure_dutch_transcribe_settings(job_settings, transcribe)
+
         # Should have a clear run at doing the job now
         kwargs = {'CallAnalyticsJobName': job_name,
                   'Media': media_settings,
@@ -312,6 +328,12 @@ def submitTranscribeJob(bucket, key):
                   'JobExecutionSettings': execution_settings,
                   'ContentRedaction': content_redaction
         }
+
+        # Configure Dutch transcribe settings if available
+        if DUTCH_CONFIG_AVAILABLE:
+            # Update job_settings and potentially other parameters
+            updated_settings = configure_dutch_transcribe_settings(job_settings, transcribe)
+            kwargs['Settings'] = updated_settings
 
         # Start the Transcribe job, removing any params that are "None"
         response = transcribe.start_transcription_job(
@@ -430,6 +452,12 @@ def evaluate_transcribe_mode(bucket, key):
 def lambda_handler(event, context):
     # Load our configuration data
     cf.loadConfiguration()
+    
+    # Configure Dutch language support if available
+    if DUTCH_CONFIG_AVAILABLE:
+        configure_dutch_language_support()
+        log_language_configuration()
+    
     sfData = copy.deepcopy(event)
 
     # Get the object from the event and show its content type

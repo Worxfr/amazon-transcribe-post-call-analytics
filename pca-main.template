@@ -1134,6 +1134,9 @@ Resources:
         SummarizationLambdaFunctionArn: !Ref SummarizationLambdaFunctionArn
         PyUtilsLayerArn: !GetAtt PythonUtilsLayer.Outputs.PyUtilsLayer
         LLMTableName: !GetAtt LLMPromptConfigure.Outputs.LLMTableName
+        DutchNLPApiEndpoint: !Ref DutchNLPApiEndpoint
+        EnableDutchNLP: !Ref EnableDutchNLP
+        DefaultTranscribeLanguage: !Ref DefaultTranscribeLanguage
 
   PCAUI:
     Type: AWS::CloudFormation::Stack

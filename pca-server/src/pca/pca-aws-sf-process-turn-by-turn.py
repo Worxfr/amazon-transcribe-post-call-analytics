@@ -21,6 +21,17 @@ import csv
 import boto3
 import time
 
+# Dutch NLP Integration
+try:
+    from pca_dutch_nlp_integration import (
+        get_nlp_processor_for_language,
+        process_sentiment_with_language_support,
+        process_entities_with_language_support
+    )
+    DUTCH_NLP_AVAILABLE = True
+except ImportError:
+    DUTCH_NLP_AVAILABLE = False
+
 # Sentiment helpers
 MIN_SENTIMENT_LENGTH = 8
 NLP_THROTTLE_RETRIES = 1
@@ -352,20 +363,29 @@ class TranscribeParser:
 
     def comprehend_single_sentiment(self, text, client):
         """
-        Perform sentiment analysis, but try and avert throttling by trying one more time if this exceptions.
+        Perform sentiment analysis with Dutch NLP support, but try and avert throttling by trying one more time if this exceptions.
         It is not a replacement for limit increases, but will help limit failures if usage suddenly grows
         """
         sentimentResponse = {}
         counter = 0
         while sentimentResponse == {}:
             try:
-                # Get the sentiment, and strip off the MIXED response (as we won't be using it)
-                sentimentResponse = client.detect_sentiment(Text=text, LanguageCode=self.comprehendLanguageCode)
-                sentimentResponse["SentimentScore"].pop("Mixed", None)
+                # Use Dutch NLP integration if available and appropriate
+                if DUTCH_NLP_AVAILABLE:
+                    sentimentResponse = process_sentiment_with_language_support(
+                        text, 
+                        self.comprehendLanguageCode, 
+                        client
+                    )
+                else:
+                    # Fallback to standard Comprehend
+                    sentimentResponse = client.detect_sentiment(Text=text, LanguageCode=self.comprehendLanguageCode)
+                    sentimentResponse["SentimentScore"].pop("Mixed", None)
 
-                # Now scale our remaining values
-                for sentiment_key in sentimentResponse["SentimentScore"]:
-                    sentimentResponse["SentimentScore"][sentiment_key] *= COMPREHEND_SENTIMENT_SCALER
+                    # Now scale our remaining values
+                    for sentiment_key in sentimentResponse["SentimentScore"]:
+                        sentimentResponse["SentimentScore"][sentiment_key] *= COMPREHEND_SENTIMENT_SCALER
+                        
             except Exception as e:
                 if counter < NLP_THROTTLE_RETRIES:
                     counter += 1
@@ -377,14 +397,24 @@ class TranscribeParser:
 
     def comprehend_single_entity(self, text, client):
         """
-        Perform entity analysis, but try and avert throttling by trying one more time if this exceptions.
+        Perform entity analysis with Dutch NLP support, but try and avert throttling by trying one more time if this exceptions.
         It is not a replacement for limit increases, but will help limit failures if usage suddenly grows
         """
         entityResponse = {}
         counter = 0
         while entityResponse == {}:
             try:
-                entityResponse = client.detect_entities(Text=text, LanguageCode=self.comprehendLanguageCode)
+                # Use Dutch NLP integration if available and appropriate
+                if DUTCH_NLP_AVAILABLE:
+                    entityResponse = process_entities_with_language_support(
+                        text, 
+                        self.comprehendLanguageCode, 
+                        client
+                    )
+                else:
+                    # Fallback to standard Comprehend
+                    entityResponse = client.detect_entities(Text=text, LanguageCode=self.comprehendLanguageCode)
+                    
             except Exception as e:
                 if counter < NLP_THROTTLE_RETRIES:
                     counter += 1
