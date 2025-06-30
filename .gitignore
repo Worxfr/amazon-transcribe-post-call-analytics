@@ -8,3 +8,14 @@ build
 .DS_Store
 .idea/
 pca-ssm/.DS_Store
+
+# Build artifacts with sensitive data
+build/
+submodule-mediasearch/cfn-templates/out/
+
+# Deployment artifacts
+*.zip
+
+# Python cache
+__pycache__/
+*.pyc
