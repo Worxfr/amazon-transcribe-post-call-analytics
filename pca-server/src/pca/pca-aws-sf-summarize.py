@@ -287,22 +287,41 @@ def lambda_handler(event, context):
             print(err)
     elif SUMMARIZE_TYPE == 'BEDROCK' or SUMMARIZE_TYPE == 'BEDROCK+TCA':
         try:
+            print(f"BEDROCK summarization starting. Dutch summarization available: {DUTCH_SUMMARIZATION_AVAILABLE}")
+            print(f"Transcript preview (first 200 chars): {transcript_str[:200]}...")
+            
             # Check if content is Dutch and use Dutch summarization if available
-            if DUTCH_SUMMARIZATION_AVAILABLE and is_dutch_content(transcript_str):
-                print("Using Dutch summarization for Bedrock")
-                # Extract call metadata for Dutch summarization
-                call_metadata = {
-                    'duration': getattr(pca_results.analytics, 'duration_seconds', 0),
-                    'channel_count': len(getattr(pca_results.analytics, 'channel_labels', [])),
-                    'date': getattr(pca_results.analytics, 'conversation_time', '')
-                }
-                summary_json = summarize_dutch_call_with_bedrock(
-                    transcript_str, 
-                    BEDROCK_MODEL_ID, 
-                    call_metadata
-                )
-                summary = json.dumps(summary_json) if isinstance(summary_json, dict) else str(summary_json)
+            if DUTCH_SUMMARIZATION_AVAILABLE:
+                is_dutch = is_dutch_content(transcript_str)
+                print(f"Dutch content detection result: {is_dutch}")
+                
+                if is_dutch:
+                    print("Using Dutch summarization for Bedrock")
+                    # Extract call metadata for Dutch summarization
+                    call_metadata = {
+                        'duration': getattr(pca_results.analytics, 'duration_seconds', 0),
+                        'channel_count': len(getattr(pca_results.analytics, 'channel_labels', [])),
+                        'date': getattr(pca_results.analytics, 'conversation_time', '')
+                    }
+                    print(f"Call metadata: {call_metadata}")
+                    
+                    summary_json = summarize_dutch_call_with_bedrock(
+                        transcript_str, 
+                        BEDROCK_MODEL_ID, 
+                        call_metadata
+                    )
+                    summary = json.dumps(summary_json) if isinstance(summary_json, dict) else str(summary_json)
+                    print(f"Dutch summary generated: {summary[:200]}...")
+                else:
+                    print("Content not detected as Dutch, using standard English Bedrock summarization")
+                    # Use standard English Bedrock summarization
+                    summary = generate_bedrock_summary(transcript_str, pca_results.analytics.transcribe_job.api_mode)
+                    try: 
+                        summary_json = json.loads(summary)
+                    except:
+                        print('no json detected in summary.')
             else:
+                print("Dutch summarization not available, using standard English Bedrock summarization")
                 # Use standard English Bedrock summarization
                 summary = generate_bedrock_summary(transcript_str, pca_results.analytics.transcribe_job.api_mode)
                 try: 
@@ -311,7 +330,9 @@ def lambda_handler(event, context):
                     print('no json detected in summary.')
         except Exception as err:
             summary = 'An error occurred generating Bedrock summary.'
-            print(err)
+            print(f"Bedrock summarization error: {err}")
+            import traceback
+            traceback.print_exc()
     elif SUMMARIZE_TYPE == 'LAMBDA':
         try:
             summary_json = generate_custom_lambda_summary(event["interimResultsFile"])

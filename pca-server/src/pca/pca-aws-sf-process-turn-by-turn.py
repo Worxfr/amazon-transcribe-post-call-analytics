@@ -349,10 +349,21 @@ class TranscribeParser:
         """
         Based upon the language defined by the input stream set the best-match language code for Comprehend to use
         for this conversation.  It is "best-match" as Comprehend can model in EN, but has no differentiation between
-        EN-US and EN-GB.  If we cannot determine a language to use then we cannot use Comprehend standard models
+        EN-US and EN-GB.  If we cannot determine a language to use then we cannot use Comprehend standard models.
+        
+        Special handling for Dutch: Even though Comprehend doesn't support Dutch, we set the language code to 'nl'
+        so that our Dutch NLP API integration can handle it.
         """
 
         try:
+            # First check if this is Dutch language - handle it specially
+            if hasattr(self.analytics, 'conversationLanguageCode') and self.analytics.conversationLanguageCode:
+                if self.analytics.conversationLanguageCode.lower().startswith('nl'):
+                    self.comprehendLanguageCode = "nl"
+                    print(f"Set language code to 'nl' for Dutch NLP API processing")
+                    return
+            
+            # For other languages, check against Comprehend supported languages
             for checkLangCode in cf.appConfig[cf.CONF_COMP_LANGS]:
                 if self.analytics.conversationLanguageCode.startswith(checkLangCode):
                     self.comprehendLanguageCode = checkLangCode

@@ -6,7 +6,7 @@ using the Dutch NLP API instead of Amazon Comprehend for Dutch content.
 
 import json
 import boto3
-import requests
+import urllib3
 import os
 import logging
 from datetime import datetime
@@ -23,6 +23,7 @@ class DutchNLPProcessor:
         self.dutch_nlp_endpoint = os.environ.get('DUTCH_NLP_API_ENDPOINT', '')
         self.enable_dutch_nlp = os.environ.get('ENABLE_DUTCH_NLP', 'false').lower() == 'true'
         self.timeout = 30
+        self.http = urllib3.PoolManager()
         
     def is_dutch_language(self, language_code):
         """
@@ -47,25 +48,32 @@ class DutchNLPProcessor:
             if not text or len(text.strip()) < 3:
                 return self._get_neutral_sentiment()
                 
-            response = requests.post(
+            response = self.http.request(
+                'POST',
                 f"{self.dutch_nlp_endpoint}/sentiment",
-                json={'text': text},
+                body=json.dumps({'text': text}),
                 headers={'Content-Type': 'application/json'},
                 timeout=self.timeout
             )
-            response.raise_for_status()
             
-            sentiment_data = response.json()
+            if response.status != 200:
+                logger.error(f"Dutch NLP API returned status {response.status}")
+                return self._get_neutral_sentiment()
             
-            # Convert to Comprehend-compatible format
-            sentiment_scores = sentiment_data.get('scores', {})
+            sentiment_data = json.loads(response.data.decode('utf-8'))
+            
+            # Convert to Comprehend-compatible format with PCA scaling
+            confidence_scores = sentiment_data.get('confidence_scores', {})
+            
+            # Scale the scores by 5.0 to match PCA's expected range (same as COMPREHEND_SENTIMENT_SCALER)
+            SENTIMENT_SCALER = 5.0
             
             return {
                 'Sentiment': sentiment_data.get('sentiment', 'NEUTRAL').upper(),
                 'SentimentScore': {
-                    'Positive': float(sentiment_scores.get('positive', 0.0)),
-                    'Negative': float(sentiment_scores.get('negative', 0.0)),
-                    'Neutral': float(sentiment_scores.get('neutral', 1.0))
+                    'Positive': float(confidence_scores.get('positive', 0.0)) * SENTIMENT_SCALER,
+                    'Negative': float(confidence_scores.get('negative', 0.0)) * SENTIMENT_SCALER,
+                    'Neutral': float(confidence_scores.get('neutral', 1.0)) * SENTIMENT_SCALER
                 }
             }
             
@@ -82,15 +90,19 @@ class DutchNLPProcessor:
             if not text or len(text.strip()) < 3:
                 return {'Entities': []}
                 
-            response = requests.post(
+            response = self.http.request(
+                'POST',
                 f"{self.dutch_nlp_endpoint}/entities",
-                json={'text': text},
+                body=json.dumps({'text': text}),
                 headers={'Content-Type': 'application/json'},
                 timeout=self.timeout
             )
-            response.raise_for_status()
             
-            entities_data = response.json()
+            if response.status != 200:
+                logger.error(f"Dutch NLP API entities returned status {response.status}")
+                return {'Entities': []}
+            
+            entities_data = json.loads(response.data.decode('utf-8'))
             
             # Convert to Comprehend-compatible format
             entities = []
@@ -119,7 +131,7 @@ class DutchNLPProcessor:
                 return {'KeyPhrases': []}
                 
             response = requests.post(
-                f"{self.dutch_nlp_endpoint}/keyphrases",
+                f"{self.dutch_nlp_endpoint}/key-phrases",
                 json={'text': text},
                 headers={'Content-Type': 'application/json'},
                 timeout=self.timeout
@@ -157,7 +169,7 @@ class DutchNLPProcessor:
                 }
                 
             response = requests.post(
-                f"{self.dutch_nlp_endpoint}/comprehensive",
+                f"{self.dutch_nlp_endpoint}/analyze",
                 json={'text': text},
                 headers={'Content-Type': 'application/json'},
                 timeout=self.timeout
@@ -186,14 +198,15 @@ class DutchNLPProcessor:
     
     def _get_neutral_sentiment(self):
         """
-        Return neutral sentiment response
+        Return neutral sentiment response with PCA scaling
         """
+        SENTIMENT_SCALER = 5.0
         return {
             'Sentiment': 'NEUTRAL',
             'SentimentScore': {
                 'Positive': 0.0,
                 'Negative': 0.0,
-                'Neutral': 1.0
+                'Neutral': 1.0 * SENTIMENT_SCALER
             }
         }
     

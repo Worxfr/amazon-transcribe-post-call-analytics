@@ -23,6 +23,7 @@ PCA currently supports the following features:
     * Batch turn-by-turn transcription with support for [Amazon Transcribe custom vocabulary](https://docs.aws.amazon.com/transcribe/latest/dg/custom-vocabulary.html) for accuracy of domain-specific terminology 
     * [Personally identifiable information (PII) redaction](https://docs.aws.amazon.com/transcribe/latest/dg/call-analytics-pii-redaction.html) from transcripts and audio files, and [vocabulary filtering](https://docs.aws.amazon.com/transcribe/latest/dg/create-filter.html) for masking custom words and phrases
     * Multiple languages and automatic language detection
+    * **🇳🇱 Dutch Language Support** - Full integration with custom Dutch NLP API for sentiment analysis, entity extraction, and summarization (see [README-DUTCH-NLP.md](README-DUTCH-NLP.md))
     * Standard audio file formats
     * Caller and agent speaker labels using [channel identification](https://docs.aws.amazon.com/transcribe/latest/dg/channel-id.html) or [speaker diarization](https://docs.aws.amazon.com/transcribe/latest/dg/diarization.html)
 * **Analytics** *(audio files only)*

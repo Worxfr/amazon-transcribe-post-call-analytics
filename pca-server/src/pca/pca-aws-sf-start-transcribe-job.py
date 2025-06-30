@@ -8,6 +8,7 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 """
 import copy
+import os
 import boto3
 from botocore.config import Config
 import subprocess
@@ -21,8 +22,11 @@ try:
     from pca_dutch_transcribe_config import (
         configure_dutch_language_support,
         configure_dutch_transcribe_settings,
+        configure_dutch_standard_transcribe_kwargs,
         log_language_configuration,
-        is_dutch_language_configured
+        is_dutch_language_configured,
+        get_dutch_custom_vocabulary_name,
+        create_dutch_custom_vocabulary_if_needed
     )
     DUTCH_CONFIG_AVAILABLE = True
 except ImportError:
@@ -240,12 +244,17 @@ def submitTranscribeJob(bucket, key):
     # Get our role ARN from the environment and enable content redaction (if possible,
     # and if wanted).  Note, if wanted and LangID is active then we enable it, as if the
     # detected language doesn't support PII redaction then Transcribe will ignore the setting
+    # However, Dutch (nl-NL) doesn't support content redaction, so we exclude it
     role_arn = os.environ["RoleArn"]
-    if cf.isTranscriptRedactionEnabled() and \
+    dutch_language_configured = DUTCH_CONFIG_AVAILABLE and is_dutch_language_configured()
+    
+    if cf.isTranscriptRedactionEnabled() and not dutch_language_configured and \
             ((lang_code in cf.appConfig[cf.CONF_REDACTION_LANGS]) or language_options is not None):
         content_redaction = {'RedactionType': 'PII', 'RedactionOutput': 'redacted_and_unredacted'}
     else:
         content_redaction = None
+        if dutch_language_configured:
+            print("Content redaction disabled for Dutch language (not supported by AWS Transcribe)")
 
     # Now sort out the mode-specific parameters
     if api_mode == cf.API_ANALYTICS:
@@ -331,9 +340,10 @@ def submitTranscribeJob(bucket, key):
 
         # Configure Dutch transcribe settings if available
         if DUTCH_CONFIG_AVAILABLE:
-            # Update job_settings and potentially other parameters
-            updated_settings = configure_dutch_transcribe_settings(job_settings, transcribe)
-            kwargs['Settings'] = updated_settings
+            # For Standard Transcribe API, use the specialized function that handles kwargs properly
+            kwargs = configure_dutch_standard_transcribe_kwargs(kwargs, transcribe)
+        else:
+            kwargs['Settings'] = job_settings
 
         # Start the Transcribe job, removing any params that are "None"
         response = transcribe.start_transcription_job(

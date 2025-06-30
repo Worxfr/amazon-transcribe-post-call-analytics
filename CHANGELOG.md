@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 🇳🇱 **Complete Dutch Language Support** - Full integration with custom Dutch NLP API
+- Dutch sentiment analysis with 5x scaling to match PCA thresholds
+- Dutch entity extraction and key phrase analysis
+- Dutch conversation summarization with Amazon Bedrock
+- Comprehensive Dutch documentation and troubleshooting guides
+
+### Fixed
+- **Step Functions Parameter Validation** - Fixed AWS Transcribe API parameter placement for Dutch language processing
+- **Content Redaction Compatibility** - Automatically disabled PII redaction for Dutch (not supported by AWS Transcribe)
+- **Sentiment Score Scaling** - Applied 5x multiplier to Dutch NLP API scores to match PCA threshold requirements
+- **Lambda HTTP Client Compatibility** - Replaced `requests` with `urllib3` for Lambda runtime compatibility
+- **Dutch Language Detection** - Enhanced language detection to properly handle `nl-NL` language code
+- **API Endpoint Corrections** - Fixed Dutch NLP API endpoint URLs (`/key-phrases`, `/analyze`)
+
+### Changed
+- Enhanced turn-by-turn processor with Dutch language support
+- Updated Transcribe job submission logic for Dutch language compatibility
+- Improved error handling and logging for Dutch NLP integration
+
 ## [0.7.14] - 2025-02-27
 
 ### Fixed

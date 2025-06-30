@@ -125,34 +125,61 @@ def create_dutch_custom_vocabulary_if_needed(transcribe_client):
 def configure_dutch_transcribe_settings(job_settings, transcribe_client):
     """
     Configure Transcribe job settings for Dutch language processing
+    This function is designed for Call Analytics API where language settings go in Settings object
     """
     try:
         enable_dutch_nlp = os.environ.get('ENABLE_DUTCH_NLP', 'false').lower() == 'true'
         default_language = os.environ.get('DEFAULT_TRANSCRIBE_LANGUAGE', 'en-US')
         
         if enable_dutch_nlp and default_language.startswith('nl'):
-            # Add Dutch custom vocabulary
+            # Add Dutch custom vocabulary to Settings (correct for Call Analytics API)
             vocab_name = create_dutch_custom_vocabulary_if_needed(transcribe_client)
             if vocab_name:
-                job_settings['Settings'] = job_settings.get('Settings', {})
-                job_settings['Settings']['VocabularyName'] = vocab_name
+                job_settings['VocabularyName'] = vocab_name
                 logger.info(f"Added Dutch custom vocabulary {vocab_name} to job settings")
             
-            # Configure for Dutch language
-            job_settings['LanguageCode'] = default_language
-            job_settings['IdentifyLanguage'] = False
+            # For Call Analytics API, language options go in Settings
+            job_settings['LanguageOptions'] = [default_language]
             
-            # Remove language options if set (since we're using a specific language)
-            if 'LanguageOptions' in job_settings:
-                job_settings['LanguageOptions'] = [default_language]
-            
-            logger.info(f"Configured Transcribe job settings for Dutch language: {default_language}")
+            logger.info(f"Configured Call Analytics job settings for Dutch language: {default_language}")
         
         return job_settings
         
     except Exception as e:
         logger.error(f"Error configuring Dutch Transcribe settings: {str(e)}")
         return job_settings
+
+def configure_dutch_standard_transcribe_kwargs(kwargs, transcribe_client):
+    """
+    Configure Standard Transcribe API kwargs for Dutch language processing
+    For Standard API, LanguageCode and IdentifyLanguage go at top level, not in Settings
+    """
+    try:
+        enable_dutch_nlp = os.environ.get('ENABLE_DUTCH_NLP', 'false').lower() == 'true'
+        default_language = os.environ.get('DEFAULT_TRANSCRIBE_LANGUAGE', 'en-US')
+        
+        if enable_dutch_nlp and default_language.startswith('nl'):
+            # Set language parameters at top level for Standard API
+            kwargs['LanguageCode'] = default_language
+            kwargs['IdentifyLanguage'] = False
+            kwargs['LanguageOptions'] = None  # Clear language options when using specific language
+            kwargs['LanguageIdSettings'] = None  # Clear language ID settings
+            
+            # Add Dutch custom vocabulary to Settings
+            vocab_name = create_dutch_custom_vocabulary_if_needed(transcribe_client)
+            if vocab_name:
+                if 'Settings' not in kwargs:
+                    kwargs['Settings'] = {}
+                kwargs['Settings']['VocabularyName'] = vocab_name
+                logger.info(f"Added Dutch custom vocabulary {vocab_name} to Standard API job settings")
+            
+            logger.info(f"Configured Standard Transcribe API for Dutch language: {default_language}")
+        
+        return kwargs
+        
+    except Exception as e:
+        logger.error(f"Error configuring Dutch Standard Transcribe settings: {str(e)}")
+        return kwargs
 
 def is_dutch_language_configured():
     """

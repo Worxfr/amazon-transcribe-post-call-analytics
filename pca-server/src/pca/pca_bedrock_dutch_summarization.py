@@ -272,16 +272,41 @@ def generate_fallback_dutch_summary(transcript):
 
 def is_dutch_content(text):
     """
-    Simple heuristic to detect if content is likely Dutch
+    Enhanced heuristic to detect if content is likely Dutch
     """
     dutch_indicators = [
-        'de', 'het', 'een', 'van', 'en', 'in', 'op', 'met', 'voor', 'aan',
-        'klantenservice', 'verzekering', 'hypotheek', 'bankrekening',
-        'dank je wel', 'dank u wel', 'goedemorgen', 'goedemiddag'
+        # Common Dutch words
+        'de', 'het', 'een', 'van', 'en', 'in', 'op', 'met', 'voor', 'aan', 'bij', 'naar', 'uit', 'over',
+        'dat', 'dit', 'die', 'deze', 'wat', 'wie', 'waar', 'wanneer', 'waarom', 'hoe',
+        'ik', 'je', 'hij', 'zij', 'wij', 'jullie', 'zij', 'mij', 'jou', 'hem', 'haar', 'ons',
+        'is', 'zijn', 'was', 'waren', 'heeft', 'hebben', 'had', 'hadden', 'kan', 'kunnen', 'moet', 'moeten',
+        # Customer service specific Dutch terms
+        'klantenservice', 'klant', 'service', 'hulp', 'helpen', 'probleem', 'vraag', 'antwoord',
+        'verzekering', 'hypotheek', 'bankrekening', 'rekening', 'betaling', 'factuur',
+        'dank je wel', 'dank u wel', 'dank je', 'dank u', 'bedankt', 'alstublieft', 'graag',
+        'goedemorgen', 'goedemiddag', 'goedenavond', 'dag', 'hallo', 'hoi',
+        'meneer', 'mevrouw', 'mijnheer', 'u', 'jij', 'jullie',
+        'nederlands', 'nederland', 'euro', 'cent'
     ]
     
     text_lower = text.lower()
-    dutch_word_count = sum(1 for word in dutch_indicators if word in text_lower)
     
-    # If more than 3 Dutch indicators found, likely Dutch content
-    return dutch_word_count >= 3
+    # Count Dutch indicators
+    dutch_word_count = 0
+    total_words = len(text_lower.split())
+    
+    for word in dutch_indicators:
+        if word in text_lower:
+            # Count occurrences of this word
+            dutch_word_count += text_lower.count(word)
+    
+    # Calculate percentage of Dutch words
+    dutch_percentage = (dutch_word_count / max(total_words, 1)) * 100
+    
+    logger.info(f"Dutch content detection: {dutch_word_count} Dutch words out of {total_words} total words ({dutch_percentage:.1f}%)")
+    
+    # If more than 10% Dutch indicators or more than 5 absolute Dutch words, likely Dutch content
+    is_dutch = dutch_percentage > 10 or dutch_word_count >= 5
+    
+    logger.info(f"Content detected as Dutch: {is_dutch}")
+    return is_dutch
